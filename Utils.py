@@ -873,8 +873,6 @@ class Charging():
         self.energy_on_arrival = energy_on_arrival
         self.energy_on_leaving = energy_on_leaving
 
-
-
 def draw_semicircle(x1, y1, x2, y2, color='black', lw=1, ax=None):
     '''
     draw a semicircle between the points x1,y1 and x2,y2
@@ -886,73 +884,7 @@ def draw_semicircle(x1, y1, x2, y2, color='black', lw=1, ax=None):
     diameter = np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)  # Euclidian distance
     ax.add_patch(Arc(((x1 + x2) / 2, (y1 + y2) / 2), diameter, diameter, theta1=startangle, theta2=startangle + 180,
                      edgecolor=color, facecolor='none', lw=lw, zorder=0))
-    
-def create_nav_graphs(inter_wps, exte_wps, entry_wp):
-    graph_inter=nx.Graph()
-    graph_exte=nx.Graph()
-    graph_global=nx.Graph()
-
-    inter_wps=list(map(tuple, inter_wps))
-    exte_wps=list(map(tuple, exte_wps))
-    entry_wp=tuple(entry_wp)
-
-    inter_entry_point=((inter_wps[0][0]+inter_wps[-1][0])/2, (inter_wps[0][1]+inter_wps[-1][1])/2)
-    inter_wps.append(inter_entry_point)
-    exte_entry_point=((exte_wps[0][0]+exte_wps[-1][0])/2, (exte_wps[0][1]+exte_wps[-1][1])/2)
-    exte_wps.append(exte_entry_point)
-
-    graph_inter.add_node(inter_wps[0])
-
-    for i in range(1,len(inter_wps)):
-        node=inter_wps[i]
-        graph_inter.add_node(node)
-        graph_inter.add_weighted_edges_from([(inter_wps[i-1],inter_wps[i], dist(inter_wps[i-1], inter_wps[i]))])
-    graph_inter.add_weighted_edges_from([(inter_wps[-1],inter_wps[0], dist(inter_wps[-1], inter_wps[0]))])
-    
-    graph_exte.add_node(exte_wps[0])
-    for i in range(1,len(exte_wps)):
-        node=exte_wps[i]
-        graph_exte.add_node(node)
-        graph_exte.add_weighted_edges_from([(exte_wps[i-1],exte_wps[i], dist(exte_wps[i-1], exte_wps[i]))])
-    graph_exte.add_weighted_edges_from([(exte_wps[-1],exte_wps[0], dist(exte_wps[-1], exte_wps[0]))])
-
-    graph_global: nx.Graph = nx.union(graph_inter, graph_exte)
-
-    graph_global.add_node(entry_wp)
-    graph_global.add_weighted_edges_from([(inter_entry_point, entry_wp, dist(inter_entry_point, entry_wp)),
-                                          (exte_entry_point, entry_wp, dist(exte_entry_point, entry_wp))])
-
-    return graph_global
-
-
-def find_shortest_path(graph: nx.Graph, start_wp_arg, end_wp_arg):
-    start_wp=(start_wp_arg[0], start_wp_arg[1])
-    end_wp=(end_wp_arg[0], end_wp_arg[1])
-    closest_node_from_start=min(graph.nodes, key=lambda node : dist(start_wp, node))
-    closest_node_from_end=min(graph.nodes, key=lambda node : dist(end_wp, node))
-    graph.add_node(start_wp)
-    graph.add_node(end_wp)
-    graph.add_weighted_edges_from([(start_wp, closest_node_from_start, dist(start_wp, closest_node_from_start))])
-    graph.add_weighted_edges_from([(end_wp, closest_node_from_end, dist(end_wp, closest_node_from_end))])
-
-    path_to_return=nx.astar_path(graph, start_wp, end_wp)
-    graph.remove_nodes_from([start_wp, end_wp])
-    return path_to_return
-    
-def compute_shortest_path_length(graph: nx.Graph, start_wp_arg, end_wp_arg):
-    start_wp=(start_wp_arg[0], start_wp_arg[1])
-    end_wp=(end_wp_arg[0], end_wp_arg[1])
-    closest_node_from_start=min(graph.nodes, key=lambda node : dist(start_wp, node))
-    closest_node_from_end=min(graph.nodes, key=lambda node : dist(end_wp, node))
-    graph.add_node(start_wp)
-    graph.add_node(end_wp)
-    graph.add_weighted_edges_from([(start_wp, closest_node_from_start, dist(start_wp, closest_node_from_start))])
-    graph.add_weighted_edges_from([(end_wp, closest_node_from_end, dist(end_wp, closest_node_from_end))])
-
-    path_length=nx.astar_path_length(graph, start_wp, end_wp, weight='weight')
-    graph.remove_nodes_from([start_wp, end_wp])
-    return path_length
-
+ 
 def create_cost_matrix(blocks: list[Row], agents: list[SimpleAgent]):
     cost_matrix=[]
     closest_row_matrix=[]
@@ -1134,12 +1066,6 @@ def create_cost_matrix_with_cp_greedy(blocks, agents: list[Agent], charging_poin
     
     return np.array(cost_matrix), agent_matrix
 
-
-def create_cost_matrix_with_cp_and_borders(blocks, agents: list[Agent], charging_points, nav_graph):
-    cost_matrix=[]
-
-    return cost_matrix
-
 def compute_list_of_agents_makespan(agents: list[Agent]):
     makespan=0
     worst_agent_ind=0
@@ -1149,7 +1075,6 @@ def compute_list_of_agents_makespan(agents: list[Agent]):
             makespan=ag_length
             worst_agent_ind=ind_ag
     return worst_agent_ind, makespan
-
 
 def give_row(agents: list[Agent], ind_giving_agent, side):
 
@@ -1183,7 +1108,6 @@ def compute_makespan_hungarian(blocks, agents_list):
         minimal_robot_allocation.append(alloc_to_add)
     return minimal_robot_allocation, minimal_makespan
 
-
 def compute_makespan_with_cp_hungarian(blocks, agents_list, charging_points, dist_cp_matrix, SAFETY_MARGIN):
 
     cost_matrix, agent_matrix=create_cost_matrix_with_cp(blocks, agents_list, charging_points, dist_cp_matrix, SAFETY_MARGIN)
@@ -1210,26 +1134,3 @@ def compute_makespan_with_cp_greedy_hungarian(blocks, agents_list, charging_poin
         agent_to_add=agent_matrix[a[0]][a[1]]
         best_agents.append(agent_to_add)
     return best_agents, minimal_makespan
-
-
-
-if __name__ == "__main__":
-    import os.path
-
-    xpoints=[2,3,4,5]
-    optimal_mean_times=[1.62,3.51,16.93,131.28]
-    heuristic_mean_times=[0.02,0.02,0.02,0.03]
-    save_path = "/home/simon/these/code/py_rows_allocation/python_ws/energy_studies"
-    plt.rcParams.update({'font.size': 21})
-    plt.clf()
-    plt.figure(figsize=(8, 10), dpi=160)
-    plt.plot(xpoints,optimal_mean_times, label='Optimal', linewidth=5)
-    plt.plot(xpoints,heuristic_mean_times, label='Heuristic', linewidth=5)
-    plt.xlabel("Number of agents")
-    plt.ylabel("Time to find solution (seconds) ")
-    plt.title("Time to find solution for 50 rows")
-    plt.xticks(xpoints, xpoints)
-    plt.legend(fontsize="25")
-    fig_file_name="cp_time_study_omptimal_vs_heuristic_50rows_seed_2.png" 
-    fig_complete_name=os.path.join(save_path, fig_file_name)
-    plt.savefig(fig_complete_name)

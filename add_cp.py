@@ -8,13 +8,6 @@ from Utils import Agent, Traveling, Charging, RATIO_ENERGY_OUTSIDE_FIELD
 
 INF=np.inf
 
-MODE = "Optimal Charging Allocator" # "test" "Compare Charging Allocators" "Optimal Charging Allocator"
-NB_SIDE_POLYGON = 10
-NB_ROBOTS = 3
-NB_CHARGING_POINTS=10
-NB_ROWS=50
-ROWS_CROSS_INDEX=1 # TODO : Change to adapt to rows heterogeneity
-
 MAX_CHARGE=15
 SAFETY_MARGIN=0.05
 SPEED=1
@@ -22,7 +15,6 @@ SPEED_ON_ROW=1
 SPEED_ON_TRANSITION=1
 
 INIT_TH=0.1
-INCR_TH=1.01
 
 TIME_TO_RECHARGE_PER_PERCENT=0.1 # Time to recharge a percent of battery
 RATIO_ENERGY_ON_TRANSITION=1
@@ -209,216 +201,6 @@ def add_charging_points_greedy(line_pts, agents: list[Agent], charging_points, d
 
     return 1
 
-
-def add_charging_points(line_pts, agents, charging_points, dist_cp_matrix):
-
-    max_dist_row_cp=0
-    for cp in dist_cp_matrix:
-        for row in cp:
-            for dist_row_cp in row:
-                if dist_row_cp>max_dist_row_cp:
-                    max_dist_row_cp=dist_row_cp
-
-    # Optimize using Max2Others method :
-        # Compute the minimal number of charge needed by each robot to finish the mission and go back to init pos ((dist-init_charge)%(max_charge))
-
-    for ag in agents:
-
-        actions=[]
-        # Compute minimal number of charging states needed for the mission
-        ind_closest_final_cp=0
-        dist_closest_final_cp = dist_cp_matrix[ind_closest_final_cp][ag.rows[-1].id][ag.ind_out_p]
-        for ind_cp in range(1,len(charging_points)):
-            dist_cp=dist_cp_matrix[ind_cp][ag.rows[-1].id][ag.ind_out_p]
-            if dist_cp<dist_closest_final_cp:
-                ind_closest_final_cp=ind_cp
-                dist_closest_final_cp=dist_cp
-
-        total_dist=ag.block_total_dist()+dist_closest_final_cp
-
-        # print("Agent : "+str(ag.id))
-        if total_dist<ag.init_charge-SAFETY_MARGIN*ag.max_charge:
-            mini_nb_cp=0
-        else:
-            mini_nb_cp=1+(total_dist-ag.init_charge)//(ag.max_charge)
-
-        actions=[]
-        actions.append(Traveling(1,
-                                 line_pts[ag.rows[0].id][ag.ind_entry_p],
-                                 line_pts[ag.rows[0].id][(ag.ind_entry_p+1)%2],
-                                 ag.rows[0].length,
-                                 ag.rows[0].energy_expended_to_cross))
-        last_ind= (ag.ind_entry_p+1)%2
-
-        for row in ag.rows[1:]:
-            actions.append(Traveling(1,
-                                     line_pts[row.id][last_ind], 
-                                     line_pts[row.id][(last_ind+1)%2], 
-                                     row.length,
-                                     row.energy_expended_to_cross))
-            last_ind= (last_ind+1)%2
-
-        ind_closest_cp_from_init_pos=0
-        dist_closest_cp_from_init_pos = dist(charging_points[ind_closest_cp_from_init_pos], ag.starting_point)
-        for ind_cp in range(1,len(charging_points)):          
-            dist_cp=dist(charging_points[ind_cp], ag.starting_point)
-            if dist_cp<dist_closest_cp_from_init_pos:
-                ind_closest_cp_from_init_pos=ind_cp
-                dist_closest_cp_from_init_pos=dist_cp
-
-        th=INIT_TH
-        heuristic_failed=True
-        to_print=None
-        while heuristic_failed :
-            nb_cp=0
-            actions_to_insert=[]
-            heuristic_failed=False
-
-            ag.current_charge=ag.init_charge
-
-            discriminant = ag.current_charge+dist_closest_cp_from_init_pos
-
-            if ag.current_charge-SAFETY_MARGIN*ag.max_charge<dist_closest_cp_from_init_pos*RATIO_ENERGY_OUTSIDE_FIELD:
-                heuristic_failed=False
-                to_print="No Possible Solution"
-
-            elif discriminant<=th:
-                
-                travel_to_cp=Traveling(0,
-                                       ag.starting_point,
-                                       charging_points[ind_closest_cp_from_init_pos],
-                                       dist_closest_cp_from_init_pos,
-                                       dist_closest_cp_from_init_pos)
-                
-                actions_to_insert.append([0,travel_to_cp])
-                ag.compute_current_charge(travel_to_cp)
-                if ag.current_charge<0:
-                    print("ERROR ON HEURSTIC, CHECK LINE 429")
-                    heuristic_failed=False
-                    break
-                charging=Charging(charging_points[ind_closest_cp_from_init_pos], ag.current_charge, ag.max_charge)
-                actions_to_insert.append([1,charging])
-                ag.compute_current_charge(charging)
-                travel_to_entry_p=Traveling(0,
-                                            charging_points[ind_closest_cp_from_init_pos],
-                                            ag.entry_point,
-                                            dist_closest_cp_from_init_pos,
-                                            dist_closest_cp_from_init_pos)
-                actions_to_insert.append([2,travel_to_entry_p])
-                
-                ag.compute_current_charge(travel_to_entry_p)
-                
-                nb_cp+=1
-
-            else:
-                travel_to_entry_p=Traveling(0,
-                                            ag.starting_point,ag.entry_point,
-                                            ag.distance_to_entry_point,
-                                            ag.distance_to_entry_point)
-                actions_to_insert.append([0,travel_to_entry_p ])
-                ag.compute_current_charge(travel_to_entry_p)
-            ag.compute_current_charge(actions[0])
-        
-            if not heuristic_failed:
-                
-                for action_ind in range(len(actions)):
-
-                    len_actions_to_insert=len(actions_to_insert)
-
-                    ind_closest_cp=0
-                    dist_closest_cp = dist(actions[action_ind].end_pt, charging_points[ind_closest_cp])
-                    for ind_cp in range(1,len(charging_points)):
-                        dist_cp = dist(actions[action_ind].end_pt, charging_points[ind_cp])
-                        if dist_cp<dist_closest_cp:
-                            ind_closest_cp=ind_cp
-                            dist_closest_cp=dist_cp
-                    
-                    discriminant = ag.current_charge+dist_closest_cp
-                    
-                    # if rob_alloc[0]==0:
-                    #     print(energy, dist_closest_cp, discriminant, th)
-
-                    if ag.current_charge-SAFETY_MARGIN*ag.max_charge<dist_closest_cp*RATIO_ENERGY_OUTSIDE_FIELD:
-                            heuristic_failed=True
-                            break
-
-                    elif discriminant<=th: # We go to charging point
-                        travel_to_cp=Traveling(0,
-                                               actions[action_ind].end_pt, charging_points[ind_closest_cp],
-                                               dist_closest_cp,
-                                               dist_closest_cp)
-                        actions_to_insert.append([action_ind+1+len_actions_to_insert, travel_to_cp])
-
-                        ag.compute_current_charge(travel_to_cp)
-
-                        if ag.current_charge<0:
-                            print("ERROR ON HEURSTIC, CHECK LINE 488")
-                            heuristic_failed=False
-                            break
-
-                        cp=Charging(charging_points[ind_closest_cp], ag.current_charge, ag.max_charge)
-                        actions_to_insert.append([action_ind+2+len_actions_to_insert,cp])
-                        ag.compute_current_charge(cp)
-                        nb_cp+=1
-
-                        if action_ind!=len(actions)-1: # If mission not finished, we go from charging point to next row
-                            dist_from_cp=dist(charging_points[ind_closest_cp], actions[action_ind+1].start_pt)
-                            travel_from_cp=Traveling(0,
-                                                     charging_points[ind_closest_cp],
-                                                     actions[action_ind+1].start_pt,
-                                                     dist_from_cp,
-                                                     dist_from_cp)
-                            actions_to_insert.append([action_ind+3+len_actions_to_insert,travel_from_cp])
-                            ag.compute_current_charge(travel_from_cp)
-                            ag.compute_current_charge(actions[action_ind+1])
-
-                    else: # We go to next row
-                        if action_ind!=len(actions)-1:
-
-                            dist_transition = dist(actions[action_ind].end_pt, actions[action_ind+1].start_pt)
-                            transition=Traveling(2,
-                                                 actions[action_ind].end_pt, actions[action_ind+1].start_pt,
-                                                 dist_transition,
-                                                 dist_transition)
-                            actions_to_insert.append([action_ind+1+len_actions_to_insert, transition])
-                            ag.compute_current_charge(transition)
-                            ag.compute_current_charge(actions[action_ind+1])
-
-            if nb_cp<mini_nb_cp:
-                heuristic_failed=True
-            
-            th=th*INCR_TH
-
-            if th>(MAX_CHARGE+max_dist_row_cp):
-                print(th,(MAX_CHARGE+max_dist_row_cp))
-                print("No possible solution !!")
-                return 0
-            
-            
-        if to_print!=None:
-            print("WARNING : HEURISTIC FAILED")
-            print(to_print)
-            return 0
-        else:
-            # print("HEURISTIC SUCCEEDED")
-            for act in actions_to_insert:
-                actions.insert(act[0], act[1])
-
-        if type(actions[-1])!=type(Charging(None,None,None)):
-            actions.append(Traveling(0,
-                                     actions[-1].end_pt,
-                                     charging_points[ind_closest_final_cp],
-                                     dist_closest_final_cp,
-                                     dist_closest_final_cp))
-        
-        ag.add_actions(actions)
-        # Compute makespans by looking for each robot the nearest charging point(s) that makes it finish the mission and go back to initial position
-
-    # Return the list of waypoints of each robot
-
-    return 1
-
-
 def find_best_cp(start_pt, end_pt, charging_points):
     nearest_cp = charging_points[0]
     nearest_back_and_force=dist(start_pt, nearest_cp)+dist(nearest_cp, end_pt)
@@ -429,7 +211,6 @@ def find_best_cp(start_pt, end_pt, charging_points):
             nearest_cp=cp
 
     return cp, nearest_back_and_force
-
 
 def add_charging_points_optimal(agents: list[Agent], charging_points, dist_cp_matrix):
 

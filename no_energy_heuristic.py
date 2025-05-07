@@ -135,15 +135,17 @@ def heuristic(agents,line_pts, starting_points):
 
     return best_agents_allocation, best_makespan
 
+### Parameters
+NB_SIDE_POLYGON=8
+NB_ROWS=50
+NB_ROBOTS=4
+###
 
 if __name__ == "__main__":
 
-    NB_SIDE_POLYGON=8
-    NB_ROWS=50
-    NB_ROBOTS=4
     rd_seed=1
 
-    points = to_convex_contour(NB_SIDE_POLYGON,rd_seed)
+    points = to_convex_contour(NB_SIDE_POLYGON, rd_seed)
     line_pts=rows_creator_nb_rows(points,NB_ROWS)
 
     starting_points = random_starting_points(NB_ROBOTS, rd_seed)

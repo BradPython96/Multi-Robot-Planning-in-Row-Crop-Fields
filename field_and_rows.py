@@ -1,11 +1,9 @@
 import numpy as np
-import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import random
-from math import sin,atan,atan2, dist
+from math import sin,atan,atan2
 from Utils import LineSeg
 from copy import copy
-import networkx as nx
 
 ROWS_SPACING=0.25
 def random_starting_points(nb_robots, rd_seed):
@@ -55,7 +53,6 @@ def to_convex_contour(vertices_count,
     shift_x, shift_y = min_x - min_polygon_x, min_y - min_polygon_y
     return [(point_x + shift_x, point_y + shift_y)
             for point_x, point_y in points]
-
 
 def _to_vectors_coordinates(coordinates, min_coordinate, max_coordinate):
     last_min = last_max = min_coordinate
@@ -145,7 +142,6 @@ def rows_creator_nb_rows(points, nb_rows):
 
     return(line_pts)
 
-
 # Vector utility functions
 def vec_unit(v):
     length = np.sqrt(v[0] ** 2 + v[1] ** 2)
@@ -179,54 +175,6 @@ def intersect(line1, line2):
 
 def poly_is_cw(p):
     return vec_dot(vec_rot_90_cw(p[1] - p[0]), p[2] - p[1]) >= 0
-
-def expand_poly(p, distance):
-    expanded = []
-    rot = vec_rot_90_ccw if poly_is_cw(p) else vec_rot_90_cw
-
-    for i in range(len(p)):
-        pt0 = p[i - 1 if i > 0 else len(p) - 1]
-        pt1 = p[i]
-        pt2 = p[(i + 1) % len(p)]
-
-        v01 = pt1 - pt0
-        v12 = pt2 - pt1
-
-        d01 = vec_mul(vec_unit(rot(v01)), distance)
-        d12 = vec_mul(vec_unit(rot(v12)), distance)
-
-        ptx0 = pt0 + d01
-        ptx10 = pt1 + d01
-        ptx12 = pt1 + d12
-        ptx2 = pt2 + d12
-
-        expanded.append(intersect([ptx0, ptx10], [ptx12, ptx2]))
-
-    return expanded
-
-def create_border(polygon, margin):
-  
-    border = expand_poly(polygon, margin)
-    
-    copy_border=copy(border)
-    index_side_to_remove=random.randint(0, len(copy_border)-1)
-    
-    border_with_entry=copy_border[index_side_to_remove:]+copy_border[:index_side_to_remove]
-
-    entry_point=[(border_with_entry[0][0]+border_with_entry[-1][0])/2, (border_with_entry[0][1]+border_with_entry[-1][1])/2]
-
-    inter_wps= expand_poly(border_with_entry, -margin/2)
-    exte_wps= expand_poly(border_with_entry, margin/2)
-
-    inter_entry_point=[(inter_wps[0][0]+inter_wps[-1][0])/2, (inter_wps[0][1]+inter_wps[-1][1])/2]
-    exter_entry_point=[(exte_wps[0][0]+exte_wps[-1][0])/2, (exte_wps[0][1]+exte_wps[-1][1])/2]
-
-    return border_with_entry, entry_point, inter_wps, inter_entry_point, exte_wps, exter_entry_point
-
-# Function to draw polygon
-def draw_border(p, ax, color="black"):
-    p = np.append(p, [p[0]], axis=0)  # Close the polygon
-    ax.plot(p[:-1, 0], p[:-1, 1], color, linewidth=5)
 
 def draw_polygon(p, ax, color="black"):
     p = np.append(p, [p[0]], axis=0)  # Close the polygon

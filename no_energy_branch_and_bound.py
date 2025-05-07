@@ -92,11 +92,11 @@ class OptimalSearch():
             
         # print("Optimal solution found ! ")
        
-
+### Parameters
 NB_SIDE_POLYGON=8
 NB_ROWS=50
 NB_AGENTS=4
-FIELD_SPACE_MARGING=1
+###
 
 if __name__ == "__main__":
 

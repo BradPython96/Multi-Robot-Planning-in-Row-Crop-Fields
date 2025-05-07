@@ -83,14 +83,14 @@ def Heuristic_cp(agents, line_pts, starting_points,charging_points):
 
     return best_agents_allocation, best_makespan
 
+### Parameters
 NB_SIDE_POLYGON = 8
 NB_ROBOTS = 5
 NB_CHARGING_POINTS=10
 NB_ROWS=50
-ROWS_CROSS_INDEX=1 # TODO : Change to adapt to rows heterogeneity
 MAX_CHARGE=50
 SAFETY_MARGIN=0.05
-
+###
 
 if __name__ == "__main__":
     rd_seed=6

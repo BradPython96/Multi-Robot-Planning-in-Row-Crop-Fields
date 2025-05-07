@@ -272,7 +272,6 @@ class NodeWithCP():
 
         return best_agents, makespan
     
-
 def h_makespan_fast(block):
     return sum([row.length for row in block])
 
@@ -307,7 +306,6 @@ def h_makespan_slow(block: list[Row], agents: list[SimpleAgent]):
 def h_priority(block, average):
      block_length=sum([row.length for row in block])
      return int(abs(block_length-average))
-
 
 def compute_makespan(blocks, agents_list):
     block_lengths=[]

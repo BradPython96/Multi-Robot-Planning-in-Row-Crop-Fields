@@ -189,17 +189,18 @@ class OptimalSearchCPEvo():
             return is_opti
             
        
-
+## Parameters
 NB_SIDE_POLYGON=8
 NB_ROWS=30
 NB_AGENTS=4
 NB_CHARGING_POINTS=10
 MAX_CHARGE=40
 SAFETY_MARGIN=0.05
+###
 
 if __name__ == "__main__":
 
-    rd_seed=15
+    rd_seed=16
     points = to_convex_contour(NB_SIDE_POLYGON, rd_seed)
 
     # border_with_entry, entry_point, inter_waypoints, inter_entry_point, exter_waypoints, exter_entry_point = create_border(array(points), FIELD_SPACE_MARGING)
